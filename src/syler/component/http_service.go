@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"runtime/debug"
 	"strconv"
 	"syler/config"
@@ -82,6 +83,11 @@ func StartHttp() {
 		} else {
 			err = fmt.Errorf("Parse Ip err from %s", userip_str)
 		}
+	})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("Show login page")
+		path := filepath.FromSlash(*config.LoginPage)
+		http.ServeFile(w, r, path)
 	})
 	log.Printf("listen http on %d\n", *config.HttpPort)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *config.HttpPort), nil)

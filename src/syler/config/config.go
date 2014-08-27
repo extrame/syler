@@ -23,6 +23,7 @@ var (
 	HuaweiSecret   = toml.String("huawei.secret", "testing123")
 	HuaweiNasPort  = toml.Int("huawei.nas_port", 2000)
 	HuaweiDomain   = toml.String("huawei.domain", "huawei.com")
+	LoginPage      = toml.String("basic.login_page", "./login.html")
 )
 
 func IsValidClient(addr string) bool {
