@@ -35,7 +35,18 @@ func StartHttp() {
 			userpwd := []byte(r.FormValue("userpwd"))
 			var to uint64
 			to, err = strconv.ParseUint(timeout, 10, 32)
-			if userip := net.ParseIP(userip_str); userip != nil {
+
+			userip := net.ParseIP(userip_str)
+			if userip == nil {
+				if *config.UseRemoteIpAsUserIp == true {
+					ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+					userip = net.ParseIP(ip)
+				} else {
+					err = fmt.Errorf("UserIp is not available and UseRemoteIpAsUserIp is false")
+				}
+			}
+
+			if userip != nil {
 				if basip := net.ParseIP(nas); basip != nil {
 					log.Printf("got a login request from %s on nas %s\n", userip, basip)
 					if len(username) == 0 {
@@ -55,8 +66,6 @@ func StartHttp() {
 				} else {
 					err = fmt.Errorf("Parse Ip err from %s", nas)
 				}
-			} else {
-				err = fmt.Errorf("Parse Ip err from %s", userip_str)
 			}
 		} else {
 			err = fmt.Errorf("Not Allowed from this IP")
