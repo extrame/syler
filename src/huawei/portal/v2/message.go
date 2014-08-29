@@ -6,6 +6,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"huawei/portal"
+	"log"
 	"net"
 )
 
@@ -139,6 +140,7 @@ func (t *T_Message) CheckFor(req portal.Message, secret string) error {
 	t.AuthBy(secret)
 	for k, v := range wanted {
 		if v != t.Header.Authenticator[k] {
+			log.Println("md5 error of message by secret : " + secret)
 			return fmt.Errorf("MD5鉴权错误")
 		}
 	}
