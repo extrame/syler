@@ -23,13 +23,13 @@ func ErrorWrap(w http.ResponseWriter) {
 
 func StartHttp() {
 	http.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
 		defer func() {
 			ErrorWrap(w)
 		}()
 		var err error
 		if config.IsValidClient(r.RemoteAddr) {
 			timeout := r.FormValue("timeout")
-			nas := r.FormValue("nas")
 			userip_str := r.FormValue("userip")
 			username := []byte(r.FormValue("username"))
 			userpwd := []byte(r.FormValue("userpwd"))
@@ -48,9 +48,12 @@ func StartHttp() {
 			}
 
 			if userip != nil {
-				if basip := net.ParseIP(nas); basip != nil {
+				if basip := net.ParseIP(*config.NasIp); basip != nil {
 					log.Printf("got a login request from %s on nas %s\n", userip, basip)
+					fmt.Println(username)
+					fmt.Println(publicKey)
 					if len(username) == 0 {
+						fmt.Println("username len = 0")
 						if *config.RandomUser {
 							username, userpwd = RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
 						} else {
@@ -60,16 +63,17 @@ func StartHttp() {
 					} else if len(publicKey) != 0 {
 						AuthingUser[userip.String()] = AuthInfo{username, userpwd, publicKey, uint32(to)}
 					} else {
+						fmt.Println("public len = 0")
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
 					if err = Auth(userip, basip, uint32(to), username, userpwd); err == nil {
-						w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
+
 						w.WriteHeader(http.StatusOK)
 						return
 					}
 				} else {
-					err = fmt.Errorf("Parse Ip err from %s", nas)
+					err = fmt.Errorf("Parse Ip err from %s", *config.NasIp)
 				}
 			}
 		} else {
