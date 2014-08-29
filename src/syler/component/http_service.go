@@ -26,6 +26,7 @@ func StartHttp() {
 		defer func() {
 			ErrorWrap(w)
 		}()
+		w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
 		var err error
 		if config.IsValidClient(r.RemoteAddr) {
 			timeout := r.FormValue("timeout")
@@ -64,7 +65,6 @@ func StartHttp() {
 						return
 					}
 					if err = Auth(userip, basip, uint32(to), username, userpwd); err == nil {
-						w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
 						w.WriteHeader(http.StatusOK)
 						return
 					}
