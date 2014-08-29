@@ -61,9 +61,14 @@ func StartHttp() {
 							return
 						}
 					} else if len(publicKey) != 0 {
+						username = []byte(string(username) + "@" + *config.HuaweiDomain)
 						AuthingUser[userip.String()] = AuthInfo{username, userpwd, publicKey, uint32(to)}
+<<<<<<< HEAD
 					} else {
 						fmt.Println("public len = 0")
+=======
+					} else { //pulibkey = 0
+>>>>>>> 41c43fa3afff26f16eaf83f8a24edf3c88e461a2
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
