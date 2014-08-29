@@ -50,6 +50,7 @@ func StartHttp() {
 					}
 					if err = Auth(userip, basip, uint32(to), username, userpwd); err == nil {
 						w.WriteHeader(http.StatusOK)
+						w.WriteHeader("Access-Control-Allow-Origin", "")
 						return
 					}
 				} else {
@@ -91,5 +92,8 @@ func StartHttp() {
 	})
 	log.Printf("listen http on %d\n", *config.HttpPort)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *config.HttpPort), nil)
-	log.Println(err)
+	if err != nil {
+		fmt.Println(err)
+		log.Println(err)
+	}
 }
