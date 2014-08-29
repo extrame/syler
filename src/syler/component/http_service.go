@@ -64,8 +64,8 @@ func StartHttp() {
 						return
 					}
 					if err = Auth(userip, basip, uint32(to), username, userpwd); err == nil {
+						w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
 						w.WriteHeader(http.StatusOK)
-						w.WriteHeader("Access-Control-Allow-Origin", "remote_server_address")
 						return
 					}
 				} else {
