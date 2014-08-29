@@ -140,7 +140,7 @@ func (t *T_Message) CheckFor(req portal.Message, secret string) error {
 	t.AuthBy(secret)
 	for k, v := range wanted {
 		if v != t.Header.Authenticator[k] {
-			log.Println("md5 error of message by secret : " + secret)
+			log.Printf("md5 error of message by secret : %s on auth %x\n", secret, t.Header.Authenticator)
 			return fmt.Errorf("MD5鉴权错误")
 		}
 	}
