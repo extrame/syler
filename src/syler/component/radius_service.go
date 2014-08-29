@@ -4,10 +4,15 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/extrame/radius"
+	"io/ioutil"
 	"log"
 	"net"
+	"net/http"
+	"net/url"
+	"strings"
 	"syler/config"
 )
 
@@ -30,6 +35,10 @@ func StartRadiusAcc() {
 }
 
 type AuthService struct{}
+
+type RemoteResponse struct {
+	ResultCode int `json:"resultcode"`
+}
 
 func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, error) {
 	var username, userpwd []byte
@@ -79,7 +88,30 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 					log.Println("radius auth - incorrect password of ", userip.String())
 				}
 			}
-			success = true
+
+			secert := CalcSecret(info)
+			requestvalue := make(url.Values)
+			requestvalue.Set("username", string(info.Name[:len(info.Name)]))
+			requestvalue.Set("secret", secert)
+
+			result, err := http.Post(*config.RemoteServer, "application/json", strings.NewReader(requestvalue.Encode()))
+			if err != nil || result.StatusCode != 200 {
+				success = false
+				log.Println("remote server response: ", err.Error())
+			} else {
+				res, err := ioutil.ReadAll(result.Body)
+				defer result.Body.Close()
+				if err != nil {
+					log.Println("Remote server Response Prase err", err.Error())
+				}
+				remoteres := new(RemoteResponse)
+				json.Unmarshal(res, remoteres)
+				if remoteres.ResultCode == 0 {
+					success = true
+				} else {
+					success = false
+				}
+			}
 		} else if bytes.Compare(info.Pwd, userpwd) == 0 {
 			success = true
 		}

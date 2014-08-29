@@ -17,6 +17,6 @@ func RandomUser(userip, nasip net.IP, domain string, timeout uint32) ([]byte, []
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	AuthingUser[userip.String()] = AuthInfo{username, userpwd, timeout}
+	AuthingUser[userip.String()] = AuthInfo{username, userpwd, username, timeout}
 	return fname, userpwd
 }
