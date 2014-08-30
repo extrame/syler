@@ -50,9 +50,10 @@ func StartHttp() {
 			}
 
 			if userip != nil {
-				if basip := net.ParseIP(nas); basip != nil {
+				if basip := net.ParseIP(*config.NasIp); basip != nil {
 					log.Printf("got a login request from %s on nas %s\n", userip, basip)
 					if len(username) == 0 {
+						fmt.Println("username len = 0")
 						if *config.RandomUser {
 							username, userpwd = RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
 						} else {
@@ -71,7 +72,7 @@ func StartHttp() {
 						return
 					}
 				} else {
-					err = fmt.Errorf("Parse Ip err from %s", nas)
+					err = fmt.Errorf("Parse Ip err from %s", *config.NasIp)
 				}
 			}
 		} else {
