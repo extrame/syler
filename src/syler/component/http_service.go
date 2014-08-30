@@ -9,6 +9,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"syler/config"
+	"syler/outer"
 )
 
 func ErrorWrap(w http.ResponseWriter) {
@@ -60,7 +61,7 @@ func StartHttp() {
 						}
 					} else if len(publicKey) != 0 {
 						username = []byte(string(username) + "@" + *config.HuaweiDomain)
-						AuthingUser[userip.String()] = AuthInfo{username, userpwd, publicKey, uint32(to)}
+						AuthingUser[userip.String()] = outer.AuthInfo{username, userpwd, publicKey, uint32(to)}
 					} else { //pulibkey = 0
 						w.WriteHeader(http.StatusBadRequest)
 						return

@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	toml "github.com/stvp/go-toml-config"
+	"igongpai"
 	"path/filepath"
 	"syler/component"
 	"syler/config"
+	"syler/outer"
 )
 
 func main() {
@@ -18,8 +20,9 @@ func main() {
 	// 	res, err := v1.Challenge(net.IPv4(192, 168, 10, 254), *config.PortalSecret, net.IPv4(192, 168, 56, 2))
 	// }()
 
-	component.AuthingUser = make(map[string]component.AuthInfo)
+	component.AuthingUser = make(map[string]outer.AuthInfo)
 	path := flag.String("config", "./syler.conf", "设置配置文件的路径")
+	component.AddOuterAuth(igongpai.AuthService{})
 	flag.Parse()
 	*path = filepath.FromSlash(*path)
 	if err := toml.Parse(*path); err == nil {

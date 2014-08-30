@@ -3,6 +3,7 @@ package component
 import (
 	"crypto/md5"
 	"net"
+	"syler/outer"
 )
 
 func RandomUser(userip, nasip net.IP, domain string, timeout uint32) ([]byte, []byte) {
@@ -17,6 +18,6 @@ func RandomUser(userip, nasip net.IP, domain string, timeout uint32) ([]byte, []
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	AuthingUser[userip.String()] = AuthInfo{username, userpwd, username, timeout}
+	AuthingUser[userip.String()] = outer.AuthInfo{username, userpwd, username, timeout}
 	return fname, userpwd
 }
