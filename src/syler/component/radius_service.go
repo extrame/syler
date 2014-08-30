@@ -1,22 +1,17 @@
 package component
 
 import (
-	"bytes"
-	"crypto/md5"
 	"encoding/binary"
 	"fmt"
 	"github.com/extrame/radius"
 	"log"
 	"net"
 	"syler/config"
-	"syler/outer"
+	"syler/i"
 )
 
-var outer_auth outer.AuthService
-
-func AddOuterAuth(auth outer.AuthService) {
-	outer_auth = auth
-}
+var CommonPapAuth i.PapAuthService
+var CommonChapAuth i.ChapAuthService
 
 func StartRadiusAuth() {
 	log.Printf("listening auth on %d\n", *config.RadiusAuthPort)
@@ -70,45 +65,32 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	}
 	npac := request.Reply()
 	msg := "ok!"
-	success := false
-	var info outer.AuthInfo
-	var ok bool
-	if info, ok = AuthingUser[userip.String()]; ok {
-		if chapmod && bytes.Compare(username, info.Name) == 0 {
-			hash := md5.New()
-			hash.Write([]byte{chapid})
-			hash.Write(info.Pwd)
-			hash.Write(chapcha)
-			tested := hash.Sum(nil)
-			for i := 0; i < len(tested); i++ {
-				if tested[i] != chappwd[i] {
-					success = false
-					log.Println("radius auth - incorrect password of ", userip.String())
-				}
-			}
-
-			if err, msg := outer_auth.Auth(&info); err == nil {
-				success = true
-			} else {
-				success = false
-				log.Println(msg)
-			}
-		} else if bytes.Compare(info.Pwd, userpwd) == 0 {
-			success = true
+	var err error
+	var timeout uint32
+	if chapmod {
+		if auth, ok := i.ExtraAuth.(i.ChapAuthService); ok {
+			err, timeout = auth.AuthChap(username, chapid, chappwd, chapcha, userip)
+		} else {
+			err, timeout = CommonChapAuth.AuthChap(username, chapid, chappwd, chapcha, userip)
 		}
 	} else {
-		log.Println("radius auth - no such user ", userip.String())
+		if auth, ok := i.ExtraAuth.(i.PapAuthService); ok {
+			err, timeout = auth.AuthPap(username, userpwd, userip)
+		} else {
+			err, timeout = CommonPapAuth.AuthPap(username, userpwd, userip)
+		}
 	}
-	if success {
-		if info.Timeout != 0 {
+
+	if err == nil {
+		if timeout != 0 {
 			var to_bts = make([]byte, 4)
-			binary.BigEndian.PutUint32(to_bts, info.Timeout)
+			binary.BigEndian.PutUint32(to_bts, timeout)
 			npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.SessionTimeout, Value: to_bts})
 		}
 		npac.Code = radius.AccessAccept
 	} else {
 		npac.Code = radius.AccessReject
-		msg = "no such user!"
+		msg = err.Error()
 	}
 	npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte(msg)})
 
