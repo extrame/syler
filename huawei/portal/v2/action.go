@@ -5,7 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/binary"
 	"fmt"
-	"huawei/portal"
+	"github.com/extrame/syler/huawei/portal"
 	"net"
 )
 

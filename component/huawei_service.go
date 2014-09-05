@@ -3,9 +3,9 @@ package component
 import (
 	"fmt"
 	"github.com/extrame/syler/config"
-	"huawei/portal"
-	"huawei/portal/v1"
-	"huawei/portal/v2"
+	"github.com/extrame/syler/huawei/portal"
+	"github.com/extrame/syler/huawei/portal/v1"
+	"github.com/extrame/syler/huawei/portal/v2"
 	"log"
 	"net"
 	"net/http"

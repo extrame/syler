@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"huawei/portal"
+	"github.com/extrame/syler/huawei/portal"
 	"net"
 )
 
