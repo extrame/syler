@@ -1,10 +1,10 @@
 package component
 
 import (
+	"github.com/extrame/syler/config"
 	"log"
 	"os"
 	"path/filepath"
-	"syler/config"
 )
 
 func InitLogger() {

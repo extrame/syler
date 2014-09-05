@@ -2,13 +2,13 @@ package component
 
 import (
 	"fmt"
+	"github.com/extrame/syler/config"
+	"github.com/extrame/syler/i"
 	"log"
 	"net"
 	"net/http"
 	"path/filepath"
 	"runtime/debug"
-	"syler/config"
-	"syler/i"
 )
 
 var CommonHttpHandler i.HttpHandler

@@ -4,13 +4,13 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"github.com/extrame/syler/component"
+	"github.com/extrame/syler/config"
+	"github.com/extrame/syler/i"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
-	"syler/component"
-	"syler/config"
-	"syler/i"
 )
 
 type AuthInfo struct {

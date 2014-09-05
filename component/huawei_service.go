@@ -2,13 +2,13 @@ package component
 
 import (
 	"fmt"
+	"github.com/extrame/syler/config"
 	"huawei/portal"
 	"huawei/portal/v1"
 	"huawei/portal/v2"
 	"log"
 	"net"
 	"net/http"
-	"syler/config"
 )
 
 func StartHuawei() {

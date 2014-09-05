@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/extrame/syler/auth"
+	"github.com/extrame/syler/component"
+	"github.com/extrame/syler/config"
 	toml "github.com/stvp/go-toml-config"
 	"path/filepath"
-	"syler/auth"
-	"syler/component"
-	"syler/config"
 )
 
 func main() {

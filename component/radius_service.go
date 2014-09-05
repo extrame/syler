@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/extrame/radius"
+	"github.com/extrame/syler/config"
+	"github.com/extrame/syler/i"
 	"log"
 	"net"
 	"strings"
-	"syler/config"
-	"syler/i"
 )
 
 var CommonPapAuth i.PapAuthService
