@@ -75,7 +75,8 @@ func (v *Version) Unmarshall(bts []byte) portal.Message {
 		attr := &msg.Attrs[i]
 		binary.Read(buf, binary.BigEndian, &attr.AttrType)
 		binary.Read(buf, binary.BigEndian, &attr.AttrLen)
-		attr.AttrStr = make([]byte, attr.AttrLen-2)
+		attr.AttrLen = attr.AttrLen - 2
+		attr.AttrStr = make([]byte, attr.AttrLen)
 		binary.Read(buf, binary.BigEndian, &attr.AttrStr)
 	}
 	return msg

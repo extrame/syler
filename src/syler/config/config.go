@@ -27,6 +27,10 @@ var (
 	LoginPage           = toml.String("basic.login_page", "./login.html")
 )
 
+func IsValid() bool {
+	return true
+}
+
 func IsValidClient(addr string) bool {
 	if *HttpWhiteList == "" {
 		return true
