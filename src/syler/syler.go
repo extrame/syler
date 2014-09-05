@@ -22,7 +22,9 @@ func main() {
 	// }()
 
 	path := flag.String("config", "./syler.conf", "设置配置文件的路径")
-	i.ExtraAuth = igongpai.NewAuthService()
+	igp := igongpai.NewAuthService()
+	igp.AddConfig()
+	i.ExtraAuth = igp
 	basic := auth.NewAuthService()
 	component.CommonHttpHandler = basic
 	component.CommonChapAuth = basic
@@ -30,15 +32,19 @@ func main() {
 	flag.Parse()
 	*path = filepath.FromSlash(*path)
 	if err := toml.Parse(*path); err == nil {
-		component.InitLogger()
-		go component.StartHuawei()
-		if *config.RadiusEnable {
-			go component.StartRadiusAuth()
-			go component.StartRadiusAcc()
+		if config.IsValid() {
+			if igp.IsConfigValid() {
+				component.InitLogger()
+				go component.StartHuawei()
+				if *config.RadiusEnable {
+					go component.StartRadiusAuth()
+					go component.StartRadiusAcc()
+				}
+				component.StartHttp()
+			}
 		}
-		component.StartHttp()
 	} else {
-		fmt.Println("配置文件解析错误，请重试")
+		fmt.Println(err)
 	}
 
 }

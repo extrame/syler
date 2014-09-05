@@ -25,10 +25,11 @@ var (
 	HuaweiNasPort       = toml.Int("huawei.nas_port", 2000)
 	HuaweiDomain        = toml.String("huawei.domain", "huawei.com")
 	LoginPage           = toml.String("basic.login_page", "./login.html")
-	ProxyId             = toml.String("basic.local_proxy_id", "1")
-	RemoteServer        = toml.String("basic.remote_server_address", "http://121.42.12.146:8080")
-	NasIp               = toml.String("basic.nas_ip", "")
 )
+
+func IsValid() bool {
+	return true
+}
 
 func IsValidClient(addr string) bool {
 	if *HttpWhiteList == "" {

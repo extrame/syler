@@ -31,7 +31,7 @@ func StartHttp() {
 		if handler, ok := i.ExtraAuth.(i.HttpHandler); ok {
 			handler.HandleLogin(w, r)
 		} else {
-
+			CommonHttpHandler.HandleLogin(w, r)
 		}
 	})
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {

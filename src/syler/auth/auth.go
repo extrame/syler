@@ -35,6 +35,10 @@ func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []b
 	return
 }
 
+func (a *AuthServer) AuthMac(mac []byte, userip net.IP) (error, uint32) {
+	return fmt.Errorf("unsupported mac auth on %s", userip.String()), 0
+}
+
 func (a *AuthServer) AuthPap(username, userpwd []byte, userip net.IP) (err error, to uint32) {
 	if info, ok := a.authing_user[userip.String()]; ok {
 		if bytes.Compare(info.Pwd, userpwd) == 0 {
@@ -50,7 +54,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	var err error
 	if config.IsValidClient(r.RemoteAddr) {
 		timeout := r.FormValue("timeout")
-		nas := *config.NasIp
+		nas := r.FormValue("nasip")
 		userip_str := r.FormValue("userip")
 		username := []byte(r.FormValue("username"))
 		userpwd := []byte(r.FormValue("userpwd"))

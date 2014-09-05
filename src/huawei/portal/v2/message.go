@@ -6,7 +6,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"huawei/portal"
-	"log"
 	"net"
 )
 
@@ -34,6 +33,7 @@ func (t *T_Message) Type() byte {
 func (t *T_Message) AuthBy(secret string) {
 	hashMd5 := md5.New()
 	hashMd5.Write(t.Bytes())
+	fmt.Printf("%x\n", t.Bytes())
 	hashMd5.Write([]byte(secret))
 
 	t.Header.Authenticator = hashMd5.Sum(nil)
@@ -128,21 +128,14 @@ func (msg *T_Message) Bytes() []byte {
 // }
 
 func (t *T_Message) CheckFor(req portal.Message, secret string) error {
-	msg := req.(*T_Message)
-	auth := msg.Header.Authenticator
-	typ := req.Type()
-	if t.Header.ErrCode == 0 {
-		return nil
-	}
+	reqMsg := req.(*T_Message)
+	typ := t.Type()
 	des := "未知错误"
 	wanted := t.Header.Authenticator
-	t.Header.Authenticator = auth
+	t.Header.Authenticator = reqMsg.Header.Authenticator
 	t.AuthBy(secret)
-	for k, v := range wanted {
-		if v != t.Header.Authenticator[k] {
-			log.Printf("md5 error of message by secret : %s on auth %x\n", secret, t.Header.Authenticator)
-			return fmt.Errorf("MD5鉴权错误")
-		}
+	if bytes.Compare(t.Header.Authenticator, wanted) != 0 {
+		return fmt.Errorf("MD5鉴权错误")
 	}
 	switch typ {
 	case portal.ACK_CHALLENGE:

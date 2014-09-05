@@ -2,95 +2,98 @@ package igongpai
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
+	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	toml "github.com/stvp/go-toml-config"
 	"io/ioutil"
 	"log"
 	"net"
 	"net/http"
-	"net/url"
 	"strconv"
 	"strings"
 	"syler/component"
 	"syler/config"
-	"syler/i"
 )
 
-type AuthInfo struct {
-	Name      []byte
-	Pwd       []byte
-	PublicKey []byte
-	Timeout   uint32
+type UserAuthInfo struct {
+	username []byte
+	chapid   byte
+	chapcha  []byte
+	chappwd  []byte
+	timeout  uint32
+}
+
+type MacAuthInfo struct {
+	mac     []byte
+	timeout uint32
 }
 
 type AuthServer struct {
-	authing_user map[string]AuthInfo
+	ProxyId      *string
+	RemoteServer *string
+	NasIp        *string
 }
 
 type RemoteResponse struct {
+	S int
+	D ResultResponse
+	E string
+}
+
+type ResultResponse struct {
 	ResultCode int `json:"resultcode"`
 }
 
 func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP) (err error, to uint32) {
-	if info, ok := a.authing_user[userip.String()]; ok {
-		if bytes.Compare(username, info.Name) == 0 && i.TestChapPwd(chapid, info.Pwd, chapcha, chappwd) {
-			if err = info.TestAgainstRemote(); err == nil {
-				to = info.Timeout
-			}
-		}
-	} else {
-		err = fmt.Errorf("radius auth - no such user ", userip.String())
+	info := UserAuthInfo{username, chapid, chapcha, chappwd, 0}
+	if err = info.TestAgainstRemote(*a.RemoteServer, *a.ProxyId); err == nil {
+		to = info.timeout
+	}
+	return
+}
+
+func (a *AuthServer) AuthMac(username []byte, userip net.IP) (err error, to uint32) {
+	info := MacAuthInfo{username, 0}
+	if err = info.TestAgainstRemote(*a.RemoteServer, *a.ProxyId); err == nil {
+		to = info.timeout
 	}
 	return
 }
 
 func (a *AuthServer) AuthPap(username []byte, userpwd []byte, userip net.IP) (err error, to uint32) {
-	if info, ok := a.authing_user[userip.String()]; ok {
-		if bytes.Compare(username, info.Name) == 0 && bytes.Compare(info.Pwd, userpwd) == 0 {
-			if err = info.TestAgainstRemote(); err == nil {
-				to = info.Timeout
-			}
-		}
-	} else {
-		err = fmt.Errorf("radius auth - no such user ", userip.String())
-	}
-	return
+	return errors.New("not supported yet"), 0
 }
 
 func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Access-Control-Allow-Origin", *config.RemoteServer)
+	w.Header().Add("Access-Control-Allow-Origin", *a.RemoteServer)
 	var err error
 	if config.IsValidClient(r.RemoteAddr) {
 		timeout := r.FormValue("timeout")
-		nas := *config.NasIp
-		username := []byte(r.FormValue("username"))
+
+		username := r.FormValue("username")
 		userpwd := []byte(r.FormValue("userpwd"))
-		publicKey := []byte(r.FormValue("publickey"))
 		var to uint64
 		to, err = strconv.ParseUint(timeout, 10, 32)
 
 		ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 		userip := net.ParseIP(ip)
+		nas := *a.NasIp
 
-		if userip != nil {
-			if basip := net.ParseIP(nas); basip != nil {
-				log.Printf("got a login request from %s on nas %s\n", userip, basip)
-				if len(publicKey) != 0 {
-					username = []byte(string(username) + "@" + *config.HuaweiDomain)
-					a.authing_user[userip.String()] = AuthInfo{username, userpwd, publicKey, uint32(to)}
-				} else { //pulibkey = 0
-					w.WriteHeader(http.StatusBadRequest)
-					return
-				}
-				if err = component.Auth(userip, basip, uint32(to), username, userpwd); err == nil {
-					w.WriteHeader(http.StatusOK)
-					return
-				}
-			} else {
-				err = fmt.Errorf("Parse Ip err from %s", nas)
+		if basip := net.ParseIP(nas); basip != nil {
+			log.Printf("got a login request from %s on nas %s\n", userip, basip)
+			username = username + "@" + *config.HuaweiDomain
+			if err = component.Auth(userip, basip, uint32(to), []byte(username), userpwd); err == nil {
+				r := new(ResultResponse)
+				r.ResultCode = 0
+				bts, _ := json.Marshal(r)
+				w.Write(bts)
+				w.WriteHeader(http.StatusOK)
+				return
 			}
+		} else {
+			err = fmt.Errorf("Parse Ip err from %s", nas)
 		}
 	} else {
 		err = fmt.Errorf("Not Allowed from this IP")
@@ -99,44 +102,75 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(err.Error()))
 }
 
-func (info *AuthInfo) TestAgainstRemote() (err error) {
-	secert := info.CalcSecret()
-	requestvalue := make(url.Values)
-	requestvalue.Set("username", string(info.Name[:len(info.Name)]))
-	requestvalue.Set("secret", secert)
-	err = fmt.Errorf("error")
+type UserRemoteReq struct {
+	ChapId  string `json:"chapid"`
+	ChapCha string `json:"chapcha"`
+	ChapPwd string `json:"chappwd"`
+	ProxyId string `json:"proxyid"`
+}
+
+func (info *UserAuthInfo) TestAgainstRemote(remoteserver, proxyid string) (err error) {
+	req := new(UserRemoteReq)
+	req.ChapId = base64.StdEncoding.EncodeToString([]byte{info.chapid})
+	req.ChapCha = base64.StdEncoding.EncodeToString(info.chapcha)
+	req.ChapPwd = base64.StdEncoding.EncodeToString(info.chappwd)
+	req.ProxyId = proxyid
+
+	shortname := string(info.username)
 
 	var result *http.Response
-	result, err = http.Post(*config.RemoteServer, "application/json", strings.NewReader(requestvalue.Encode()))
-	if result.StatusCode != 200 {
-		err = fmt.Errorf("remote server response bad status code")
-	} else {
-		var res []byte
-		res, err = ioutil.ReadAll(result.Body)
-		defer result.Body.Close()
-		remoteres := new(RemoteResponse)
-		json.Unmarshal(res, remoteres)
-		if remoteres.ResultCode != 0 {
-			err = fmt.Errorf("Remote server response no success code")
+	if bts, err := json.Marshal(req); err == nil {
+		if result, err = http.Post(remoteserver+"/u/"+shortname+".json", "application/json", bytes.NewReader(bts)); err == nil {
+			if result.StatusCode != 200 {
+				err = fmt.Errorf("remote server response bad status code")
+			} else {
+				var res []byte
+				res, err = ioutil.ReadAll(result.Body)
+				defer result.Body.Close()
+				remoteres := new(RemoteResponse)
+				json.Unmarshal(res, remoteres)
+				if remoteres.S >= 300 {
+					err = fmt.Errorf("Remote server response no success code")
+				}
+			}
 		}
 	}
 	return
 }
 
-func (a *AuthInfo) CalcSecret() string {
-	pwdhelper := md5.New()
-	pwds := pwdhelper.Sum(a.Pwd)
+func (info *MacAuthInfo) TestAgainstRemote(remoteserver, proxyid string) (err error) {
 
-	md5helper := md5.New()
-	md5helper.Write(a.Name)
-	md5helper.Write(pwds)
-	md5helper.Write([]byte(*config.ProxyId))
-	md5helper.Write(a.PublicKey)
-	return hex.EncodeToString(md5helper.Sum(nil))
+	var result *http.Response
+	if result, err = http.Post(remoteserver+"/mac/"+string(info.mac)+".json", "application/json", bytes.NewBufferString(`{"proxyid":"`+proxyid+`"}`)); err == nil {
+		if result.StatusCode != 200 {
+			err = fmt.Errorf("remote server response bad status code")
+		} else {
+			var res []byte
+			res, err = ioutil.ReadAll(result.Body)
+			defer result.Body.Close()
+			remoteres := new(RemoteResponse)
+			json.Unmarshal(res, remoteres)
+			if remoteres.S >= 300 {
+				err = fmt.Errorf("Remote server response no success code")
+			}
+		}
+	}
+	return
 }
 
 func NewAuthService() *AuthServer {
 	s := new(AuthServer)
-	s.authing_user = make(map[string]AuthInfo)
 	return s
+}
+
+func (a *AuthServer) IsConfigValid() bool {
+	ip := net.ParseIP(*a.NasIp)
+	*a.RemoteServer = strings.TrimSuffix(*a.RemoteServer, "/")
+	return !ip.To4().IsUnspecified()
+}
+
+func (a *AuthServer) AddConfig() {
+	a.ProxyId = toml.String("basic.local_proxy_id", "1")
+	a.RemoteServer = toml.String("basic.remote_server_address", "http://121.42.12.146:8080/")
+	a.NasIp = toml.String("basic.nas_ip", "")
 }

@@ -60,19 +60,11 @@ func (t *T_Message) GetChallenge() []byte {
 }
 
 func (t *T_Message) CheckFor(msg portal.Message, secret string) error {
-	typ := msg.Type()
+	typ := t.Type()
 	if t.Header.ErrCode == 0 {
 		return nil
 	}
 	des := "未知错误"
-	// wanted := t.Header.Authenticator
-	// t.Header.Authenticator = auth
-	// t.AuthBy(secret)
-	// for k, v := range wanted {
-	// 	if v != t.Header.Authenticator[k] {
-	// 		return fmt.Errorf("MD5鉴权错误")
-	// 	}
-	// }
 	switch typ {
 	case portal.ACK_CHALLENGE:
 		switch t.Header.ErrCode {

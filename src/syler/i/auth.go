@@ -14,6 +14,10 @@ type PapAuthService interface {
 	AuthPap(username, userpwd []byte, userip net.IP) (error, uint32)
 }
 
+type MacAuthService interface {
+	AuthMac(mac []byte, userip net.IP) (error, uint32)
+}
+
 type HttpHandler interface {
 	HandleLogin(w http.ResponseWriter, r *http.Request)
 }
