@@ -128,6 +128,9 @@ func (msg *T_Message) Bytes() []byte {
 // }
 
 func (t *T_Message) CheckFor(req portal.Message, secret string) error {
+	if t.Header.ErrCode == 0 { //Normal
+		return nil
+	}
 	reqMsg := req.(*T_Message)
 	typ := t.Type()
 	des := "未知错误"
