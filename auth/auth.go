@@ -16,6 +16,7 @@ import (
 type AuthInfo struct {
 	Name    []byte
 	Pwd     []byte
+	Mac     net.HardwareAddr
 	Timeout uint32
 }
 
@@ -23,10 +24,11 @@ type AuthServer struct {
 	authing_user map[string]AuthInfo
 }
 
-func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP) (err error, to uint32) {
+func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP, usermac net.HardwareAddr) (err error, to uint32) {
 	if info, ok := a.authing_user[userip.String()]; ok {
 		if bytes.Compare(username, info.Name) == 0 && i.TestChapPwd(chapid, info.Pwd, chapcha, chappwd) {
 			to = info.Timeout
+			info.Mac = usermac
 			return
 		}
 	} else {
@@ -35,7 +37,7 @@ func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []b
 	return
 }
 
-func (a *AuthServer) AuthMac(mac []byte, userip net.IP) (error, uint32) {
+func (a *AuthServer) AuthMac(mac net.HardwareAddr, userip net.IP) (error, uint32) {
 	return fmt.Errorf("unsupported mac auth on %s", userip.String()), 0
 }
 
@@ -89,6 +91,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 				}
 				if err = component.Auth(userip, basip, uint32(to), username, userpwd); err == nil {
 					w.WriteHeader(http.StatusOK)
+					w.Write(a.authing_user[userip.String()].Mac)
 					return
 				}
 			} else {

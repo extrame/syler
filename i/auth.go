@@ -7,7 +7,7 @@ import (
 )
 
 type ChapAuthService interface {
-	AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP) (error, uint32)
+	AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP, usermac net.HardwareAddr) (error, uint32)
 }
 
 type PapAuthService interface {
@@ -15,7 +15,7 @@ type PapAuthService interface {
 }
 
 type MacAuthService interface {
-	AuthMac(mac []byte, userip net.IP) (error, uint32)
+	AuthMac(mac net.HardwareAddr, userip net.IP) (error, uint32)
 }
 
 type HttpHandler interface {
