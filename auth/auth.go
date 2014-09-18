@@ -80,7 +80,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 					log.Println("username len = 0")
 
 					if *config.RandomUser {
-						username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
+						username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, []byte{}, uint32(to))
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
 						return
@@ -117,7 +117,7 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	a.authing_user[userip.String()] = AuthInfo{username, userpwd, timeout}
+	a.authing_user[userip.String()] = AuthInfo{username, userpwd, []byte{}, timeout}
 	return fname, userpwd
 }
 
