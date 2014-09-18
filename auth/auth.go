@@ -80,14 +80,14 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 					log.Println("username len = 0")
 
 					if *config.RandomUser {
-						username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, []byte{}, uint32(to))
+						username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
 					} else {
 						w.WriteHeader(http.StatusBadRequest)
 						return
 					}
 				} else {
 					username = []byte(string(username) + "@" + *config.HuaweiDomain)
-					a.authing_user[userip.String()] = AuthInfo{username, userpwd, uint32(to)}
+					a.authing_user[userip.String()] = AuthInfo{username, userpwd, []byte{}, uint32(to)}
 				}
 				if err = component.Auth(userip, basip, uint32(to), username, userpwd); err == nil {
 					w.WriteHeader(http.StatusOK)
