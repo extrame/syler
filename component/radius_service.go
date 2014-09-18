@@ -20,7 +20,7 @@ func StartRadiusAuth() {
 	s := radius.NewServer(fmt.Sprintf(":%d", *config.RadiusAuthPort), *config.RadiusSecret)
 	s.RegisterService(&AuthService{})
 	err := s.ListenAndServe()
-	log.Println(err)
+	log.Println("Auth Err:", err)
 }
 
 func StartRadiusAcc() {
@@ -29,7 +29,7 @@ func StartRadiusAcc() {
 		s := radius.NewServer(fmt.Sprintf(":%d", *config.RadiusAccPort), *config.RadiusSecret)
 		s.RegisterService(&AccService{})
 		err := s.ListenAndServe()
-		log.Println(err)
+		log.Println("Acc Err:", err)
 	}
 }
 
@@ -40,7 +40,7 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	var chapid byte
 	var chappwd []byte
 	var chapmod = false
-	var callingStationId string
+	var callingStationId net.HardwareAddr
 	var chapcha = request.Authenticator[:]
 	var userip net.IP
 
@@ -65,13 +65,13 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 		} else if v.Type == radius.FramedIPAddress {
 			userip = net.IPv4(v.Value[0], v.Value[1], v.Value[2], v.Value[3])
 		} else if v.Type == radius.CallingStationId {
-			callingStationId = string(v.Value)
-			callingStationId = strings.ToLower(
-				strings.Join(
-					strings.FieldsFunc(callingStationId, func(s rune) bool {
-						return s == '-' || s == ':'
-					}), ""))
-			log.Println("new auth on mac :" + callingStationId)
+			s := string(v.Value)
+			s = strings.Replace(s, "-", ".", -1)
+			var err error
+			callingStationId, err = net.ParseMAC(s)
+			if err != nil {
+				log.Println("parse mac error")
+			}
 		}
 	}
 	npac := request.Reply()
@@ -79,21 +79,22 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	var err = fmt.Errorf("unhandled")
 	var timeout uint32
 	//for mac test
-	if strings.ToLower(string(username)) == callingStationId {
-		log.Println("Request to auth mac %s", string(username))
+	testedUserName := strings.Replace(callingStationId.String(), ":", "", -1)
+	if strings.ToLower(string(username)) == testedUserName {
+		log.Printf("Request to auth mac %s\n", testedUserName)
 		if auth, ok := i.ExtraAuth.(i.MacAuthService); ok {
-			err, timeout = auth.AuthMac(username, userip)
+			err, timeout = auth.AuthMac(callingStationId, userip)
 		} else {
-			err, timeout = CommonMacAuth.AuthMac(username, userip)
+			err, timeout = CommonMacAuth.AuthMac(callingStationId, userip)
 		}
 	}
 	//for user name test
 	if err != nil {
 		if chapmod {
 			if auth, ok := i.ExtraAuth.(i.ChapAuthService); ok {
-				err, timeout = auth.AuthChap(username, chapid, chappwd, chapcha, userip)
+				err, timeout = auth.AuthChap(username, chapid, chappwd, chapcha, userip, callingStationId)
 			} else {
-				err, timeout = CommonChapAuth.AuthChap(username, chapid, chappwd, chapcha, userip)
+				err, timeout = CommonChapAuth.AuthChap(username, chapid, chappwd, chapcha, userip, callingStationId)
 			}
 		} else {
 			if auth, ok := i.ExtraAuth.(i.PapAuthService); ok {
