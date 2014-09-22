@@ -39,7 +39,7 @@ func StartHttp() {
 			ErrorWrap(w)
 		}()
 		var err error
-		nas := r.FormValue("nas") //TODO
+		nas := r.FormValue("nasip") //TODO
 		userip_str := r.FormValue("userip")
 		if userip := net.ParseIP(userip_str); userip != nil {
 			if basip := net.ParseIP(nas); basip != nil {
