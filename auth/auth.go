@@ -102,6 +102,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("Not Allowed from this IP")
 	}
 	w.WriteHeader(http.StatusBadRequest)
+	log.Println("login error: ", err)
 	w.Write([]byte(err.Error()))
 }
 
