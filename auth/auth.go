@@ -124,6 +124,6 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 
 func NewAuthService() *AuthServer {
 	s := new(AuthServer)
-	s.authing_user = make(map[string]AuthInfo)
+	s.authing_user = make(map[string]&AuthInfo)
 	return s
 }
