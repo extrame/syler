@@ -21,7 +21,7 @@ type AuthInfo struct {
 }
 
 type AuthServer struct {
-	authing_user map[string]AuthInfo
+	authing_user map[string]*AuthInfo
 }
 
 func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP, usermac net.HardwareAddr) (err error, to uint32) {
@@ -87,7 +87,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 					}
 				} else {
 					username = []byte(string(username) + "@" + *config.HuaweiDomain)
-					a.authing_user[userip.String()] = AuthInfo{username, userpwd, []byte{}, uint32(to)}
+					a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, uint32(to)}
 				}
 				if err = component.Auth(userip, basip, uint32(to), username, userpwd); err == nil {
 					w.WriteHeader(http.StatusOK)
@@ -118,7 +118,7 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	a.authing_user[userip.String()] = AuthInfo{username, userpwd, []byte{}, timeout}
+	a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, timeout}
 	return fname, userpwd
 }
 
