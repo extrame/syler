@@ -136,6 +136,7 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 		npac.Code = radius.AccessAccept
 	} else {
 		npac.Code = radius.AccessReject
+		log.Println("radius error ", err)
 		msg = err.Error()
 	}
 	npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte(msg)})
