@@ -82,9 +82,8 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		if userip != nil {
 			if basip := net.ParseIP(nas); basip != nil {
 				log.Printf("got a login request from %s on nas %s\n", userip, basip)
-				username = []byte(string(username) + "@" + *config.HuaweiDomain)
 				a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, uint32(to)}
-				err = Auth(userip, basip, uint32(to), username, userpwd)
+				err = Auth(userip, basip, uint32(to), []byte(string(username)+"@"+*config.HuaweiDomain), userpwd)
 				if err == nil {
 					w.Write([]byte(a.authing_user[userip.String()].Mac.String()))
 					return
