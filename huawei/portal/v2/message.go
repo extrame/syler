@@ -30,10 +30,17 @@ func (t *T_Message) Type() byte {
 	return t.Header.Type
 }
 
+func (t *T_Message) AttributeLen() int {
+	return len(t.Attrs)
+}
+
+func (t *T_Message) Attribute(n int) portal.Attribute {
+	return t.Attrs[n]
+}
+
 func (t *T_Message) AuthBy(secret string) {
 	hashMd5 := md5.New()
 	hashMd5.Write(t.Bytes())
-	fmt.Printf("%x\n", t.Bytes())
 	hashMd5.Write([]byte(secret))
 
 	t.Header.Authenticator = hashMd5.Sum(nil)
@@ -146,7 +153,8 @@ func (t *T_Message) CheckFor(req portal.Message, secret string) error {
 		case 1:
 			des = "请求Challenge被拒绝"
 		case 2:
-			des = "此链接已建立"
+			fmt.Println("此链接已建立")
+			return nil
 		case 3:
 			des = "有一个用户正在认证过程中，请稍后再试"
 		case 4:
@@ -157,7 +165,8 @@ func (t *T_Message) CheckFor(req portal.Message, secret string) error {
 		case 1:
 			des = "认证请求被拒绝"
 		case 2:
-			des = "此链接已建立"
+			fmt.Println("此链接已建立")
+			return nil
 		case 3:
 			des = "有一个用户正在认证过程中，请稍后再试"
 		case 4:
@@ -185,4 +194,16 @@ type T_Attr struct {
 	AttrType byte
 	AttrLen  byte
 	AttrStr  []byte
+}
+
+func (t T_Attr) Byte() []byte {
+	return t.AttrStr
+}
+
+func (t T_Attr) Length() byte {
+	return t.AttrLen
+}
+
+func (t T_Attr) Type() byte {
+	return t.AttrType
 }

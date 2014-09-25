@@ -11,14 +11,15 @@ import (
 	"strings"
 )
 
-var CommonPapAuth i.PapAuthService
-var CommonChapAuth i.ChapAuthService
-var CommonMacAuth i.MacAuthService
+var START = int64(1)
+var STOP = int64(2)
+
+var radius_service *AuthService = new(AuthService)
 
 func StartRadiusAuth() {
 	log.Printf("listening auth on %d\n", *config.RadiusAuthPort)
 	s := radius.NewServer(fmt.Sprintf(":%d", *config.RadiusAuthPort), *config.RadiusSecret)
-	s.RegisterService(&AuthService{})
+	s.RegisterService(radius_service)
 	err := s.ListenAndServe()
 	log.Println("Auth Err:", err)
 }
@@ -27,7 +28,7 @@ func StartRadiusAcc() {
 	if *config.RadiusAccPort != *config.RadiusAuthPort {
 		log.Printf("listening acc on %d\n", *config.RadiusAccPort)
 		s := radius.NewServer(fmt.Sprintf(":%d", *config.RadiusAccPort), *config.RadiusSecret)
-		s.RegisterService(&AccService{})
+		s.RegisterService(radius_service)
 		err := s.ListenAndServe()
 		log.Println("Acc Err:", err)
 	}
@@ -43,13 +44,8 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	var callingStationId net.HardwareAddr
 	var chapcha = request.Authenticator[:]
 	var userip net.IP
-
-	if request.Code == radius.AccountingRequest {
-		npac := request.Reply()
-		npac.Code = radius.AccountingResponse
-		npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte("ok!")})
-		return npac, nil
-	}
+	var acctStatus int64
+	var acctSessionId string
 
 	for _, v := range request.AVPs {
 		if v.Type == radius.UserName {
@@ -63,17 +59,43 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 		} else if v.Type == radius.CHAPChallenge {
 			chapcha = v.Value
 		} else if v.Type == radius.FramedIPAddress {
-			userip = net.IPv4(v.Value[0], v.Value[1], v.Value[2], v.Value[3])
+			userip, _ = v.IP()
 		} else if v.Type == radius.CallingStationId {
-			s := string(v.Value)
-			s = strings.Replace(s, "-", ".", -1)
-			var err error
-			callingStationId, err = net.ParseMAC(s)
-			if err != nil {
-				log.Println("parse mac error")
-			}
+			callingStationId, _ = v.Mac()
+		} else if v.Type == radius.AcctStatusType {
+			acctStatus, _ = v.Integer()
+		} else if v.Type == radius.AcctSessionId {
+			acctSessionId, _ = v.Text()
 		}
 	}
+
+	if request.Code == radius.AccountingRequest {
+		var err error
+		if acctStatus == START {
+			if service, ok := i.ExtraAuth.(i.RadiusAcctStartService); ok {
+				err = service.AcctStart(username, userip, request.NasIP(), callingStationId, acctSessionId)
+			} else {
+				err = BASIC_SERVICE.AcctStart(username, userip, request.NasIP(), callingStationId, acctSessionId)
+			}
+
+		} else if acctStatus == STOP {
+			if service, ok := i.ExtraAuth.(i.RadiusAcctStopService); ok {
+				err = service.AcctStop(username, userip, request.NasIP(), callingStationId, acctSessionId)
+			} else {
+				err = BASIC_SERVICE.AcctStop(username, userip, request.NasIP(), callingStationId, acctSessionId)
+			}
+
+		}
+		npac := request.Reply()
+		npac.Code = radius.AccountingResponse
+		text := "OK!"
+		if err != nil {
+			text = err.Error()
+		}
+		npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte(text)})
+		return npac, nil
+	}
+
 	npac := request.Reply()
 	msg := "ok!"
 	var err = fmt.Errorf("unhandled")
@@ -85,7 +107,7 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 		if auth, ok := i.ExtraAuth.(i.MacAuthService); ok {
 			err, timeout = auth.AuthMac(callingStationId, userip)
 		} else {
-			err, timeout = CommonMacAuth.AuthMac(callingStationId, userip)
+			err, timeout = BASIC_SERVICE.AuthMac(callingStationId, userip)
 		}
 	}
 	//for user name test
@@ -94,13 +116,13 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 			if auth, ok := i.ExtraAuth.(i.ChapAuthService); ok {
 				err, timeout = auth.AuthChap(username, chapid, chappwd, chapcha, userip, callingStationId)
 			} else {
-				err, timeout = CommonChapAuth.AuthChap(username, chapid, chappwd, chapcha, userip, callingStationId)
+				err, timeout = BASIC_SERVICE.AuthChap(username, chapid, chappwd, chapcha, userip, callingStationId)
 			}
 		} else {
 			if auth, ok := i.ExtraAuth.(i.PapAuthService); ok {
 				err, timeout = auth.AuthPap(username, userpwd, userip)
 			} else {
-				err, timeout = CommonPapAuth.AuthPap(username, userpwd, userip)
+				err, timeout = BASIC_SERVICE.AuthPap(username, userpwd, userip)
 			}
 		}
 	}

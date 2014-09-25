@@ -43,7 +43,7 @@ func StartHttp() {
 		userip_str := r.FormValue("userip")
 		if userip := net.ParseIP(userip_str); userip != nil {
 			if basip := net.ParseIP(nas); basip != nil {
-				if _, err = Logout(userip, *config.PortalSecret, basip); err == nil {
+				if _, err = Logout(userip, *config.HuaweiSecret, basip); err == nil {
 					w.WriteHeader(http.StatusOK)
 					return
 				}

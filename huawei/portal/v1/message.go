@@ -25,6 +25,14 @@ func (t *T_Message) UserIp() net.IP {
 	return t.Header.UserIp
 }
 
+func (t *T_Message) AttributeLen() int {
+	return len(t.Attrs)
+}
+
+func (t *T_Message) Attribute(n int) portal.Attribute {
+	return t.Attrs[n]
+}
+
 func (msg *T_Message) Bytes() []byte {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.BigEndian, msg.Header.Version)
@@ -109,4 +117,16 @@ type T_Attr struct {
 	AttrType byte
 	AttrLen  byte
 	AttrStr  []byte
+}
+
+func (t T_Attr) Byte() []byte {
+	return t.AttrStr
+}
+
+func (t T_Attr) Length() byte {
+	return t.AttrLen
+}
+
+func (t T_Attr) Type() byte {
+	return t.AttrType
 }

@@ -22,6 +22,13 @@ func (v *Version) NewAffAckAuth(userip net.IP, secret string, serial uint16, req
 	return newMessage(portal.AFF_ACK_AUTH, userip, secret, serial, reqid)
 }
 
+func (v *Version) NewReqInfo(userip net.IP, secret string) portal.Message {
+	msg := newMessage(portal.REQ_INFO, userip, secret, portal.NewSerialNo(), 0)
+	msg.Header.AttrNum = 2
+	msg.Attrs = []T_Attr{{AttrType: byte(6), AttrLen: 2}, {AttrType: byte(7), AttrLen: 2}}
+	return msg
+}
+
 func (v *Version) IsResponse(mesg portal.Message) bool {
 	switch mesg.Type() {
 	case 2, 4, 6, 10:

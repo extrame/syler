@@ -20,10 +20,7 @@ func main() {
 	// }()
 
 	path := flag.String("config", "./syler.conf", "设置配置文件的路径")
-	basic := auth.NewAuthService()
-	component.CommonHttpHandler = basic
-	component.CommonChapAuth = basic
-	component.CommonPapAuth = basic
+	componnet.InitBasic()
 	flag.Parse()
 	*path = filepath.FromSlash(*path)
 	if err := toml.Parse(*path); err == nil {

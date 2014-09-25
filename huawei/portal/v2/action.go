@@ -42,6 +42,14 @@ func (v *Version) NewAuth(userip net.IP, secret string, username []byte, userpwd
 	return msg
 }
 
+func (v *Version) NewReqInfo(userip net.IP, secret string) portal.Message {
+	msg := newMessage(portal.REQ_INFO, userip, portal.NewSerialNo(), 0)
+	msg.Header.AttrNum = 2
+	msg.Attrs = []T_Attr{{AttrType: byte(6), AttrLen: 2}, {AttrType: byte(7), AttrLen: 2}}
+	msg.AuthBy(secret)
+	return msg
+}
+
 func (v *Version) IsResponse(mesg portal.Message) bool {
 	switch mesg.Type() {
 	case 2, 4, 6, 10:

@@ -1,34 +1,37 @@
-package auth
+package component
 
 import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
-	"github.com/extrame/syler/component"
-	"github.com/extrame/syler/config"
-	"github.com/extrame/syler/i"
 	"log"
 	"net"
 	"net/http"
 	"strconv"
+	"syler/config"
+	"syler/i"
 )
 
 type AuthInfo struct {
 	Name    []byte
 	Pwd     []byte
-	Mac     net.HardwareAddr
 	Timeout uint32
 }
 
 type AuthServer struct {
-	authing_user map[string]*AuthInfo
+	authing_user map[string]AuthInfo
+}
+
+var BASIC_SERVICE = new(AuthServer)
+
+func InitBasic() {
+	BASIC_SERVICE.authing_user = make(map[string]AuthInfo)
 }
 
 func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP, usermac net.HardwareAddr) (err error, to uint32) {
 	if info, ok := a.authing_user[userip.String()]; ok {
 		if bytes.Compare(username, info.Name) == 0 && i.TestChapPwd(chapid, info.Pwd, chapcha, chappwd) {
 			to = info.Timeout
-			info.Mac = usermac
 			return
 		}
 	} else {
@@ -57,6 +60,9 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if config.IsValidClient(r.RemoteAddr) {
 		timeout := r.FormValue("timeout")
 		nas := r.FormValue("nasip")
+		if *config.NasIp != "" {
+			nas = *config.NasIp
+		}
 		userip_str := r.FormValue("userip")
 		username := []byte(r.FormValue("username"))
 		userpwd := []byte(r.FormValue("userpwd"))
@@ -64,46 +70,32 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		to, err = strconv.ParseUint(timeout, 10, 32)
 
 		userip := net.ParseIP(userip_str)
-		if userip == nil {
-			if *config.UseRemoteIpAsUserIp == true {
-				ip, _, _ := net.SplitHostPort(r.RemoteAddr)
-				userip = net.ParseIP(ip)
-			} else {
-				err = fmt.Errorf("UserIp is not available and UseRemoteIpAsUserIp is false")
-			}
+		if *config.UseRemoteIpAsUserIp == true {
+			ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+			userip = net.ParseIP(ip)
+		} else if userip == nil {
+			err = fmt.Errorf("配置错误！请联系管理员")
 		}
 
 		if userip != nil {
 			if basip := net.ParseIP(nas); basip != nil {
 				log.Printf("got a login request from %s on nas %s\n", userip, basip)
-				if len(username) == 0 {
-					log.Println("username len = 0")
-
-					if *config.RandomUser {
-						username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
-					} else {
-						w.WriteHeader(http.StatusBadRequest)
-						return
-					}
-				} else {
-					username = []byte(string(username) + "@" + *config.HuaweiDomain)
-					a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, uint32(to)}
-				}
-				if err = component.Auth(userip, basip, uint32(to), username, userpwd); err == nil {
-					w.WriteHeader(http.StatusOK)
-					w.Write(a.authing_user[userip.String()].Mac)
-					return
-				}
+				username = []byte(string(username) + "@" + *config.HuaweiDomain)
+				a.authing_user[userip.String()] = AuthInfo{username, userpwd, uint32(to)}
+				err = Auth(userip, basip, uint32(to), username, userpwd)
 			} else {
-				err = fmt.Errorf("Parse Ip err from %s", nas)
+				err = fmt.Errorf("NAS IP配置错误")
 			}
 		}
 	} else {
-		err = fmt.Errorf("Not Allowed from this IP")
+		err = fmt.Errorf("该IP不在配置可允许的用户中")
 	}
-	w.WriteHeader(http.StatusBadRequest)
-	log.Println("login error: ", err)
-	w.Write([]byte(err.Error()))
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(err.Error()))
+	} else {
+		w.Write([]byte("OK"))
+	}
 }
 
 func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uint32) ([]byte, []byte) {
@@ -118,12 +110,15 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, timeout}
+	a.authing_user[userip.String()] = AuthInfo{username, userpwd, timeout}
 	return fname, userpwd
 }
 
-func NewAuthService() *AuthServer {
-	s := new(AuthServer)
-	s.authing_user = make(map[string]*AuthInfo)
-	return s
+func (a *AuthServer) AcctStart(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error {
+	return nil
+}
+
+func (a *AuthServer) AcctStop(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error {
+	callBackOffline(*config.CallBackUrl, userip, src)
+	return nil
 }

@@ -37,6 +37,14 @@ type Message interface {
 	SerialId() uint16
 	UserIp() net.IP
 	CheckFor(Message, string) error
+	AttributeLen() int
+	Attribute(int) Attribute
+}
+
+type Attribute interface {
+	Type() byte
+	Length() byte
+	Byte() []byte
 }
 
 type ChallengeRes interface {
@@ -50,6 +58,7 @@ type Version interface {
 	NewAuth(net.IP, string, []byte, []byte, uint16, []byte) Message
 	NewAffAckAuth(net.IP, string, uint16, uint16) Message
 	NewLogout(net.IP, string) Message
+	NewReqInfo(net.IP, string) Message
 }
 
 func RegisterFallBack(f func(Message, net.IP)) {
@@ -130,6 +139,11 @@ func ChapAuth(userip net.IP, secret string, basip net.IP, basport int, username,
 func AffAckAuth(userip net.IP, secret string, basip net.IP, basport int, serial uint16, reqid uint16) (Message, error) {
 	AffAckAuth := Ver.NewAffAckAuth(userip, secret, serial, reqid)
 	return Send(AffAckAuth, basip, basport, secret, false)
+}
+
+func ReqInfo(userip net.IP, secret string, basip net.IP, basport int) (Message, error) {
+	ReqInfo := Ver.NewReqInfo(userip, secret)
+	return Send(ReqInfo, basip, basport, secret, true)
 }
 
 func NewSerialNo() uint16 {

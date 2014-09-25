@@ -22,6 +22,14 @@ type HttpHandler interface {
 	HandleLogin(w http.ResponseWriter, r *http.Request)
 }
 
+type RadiusAcctStartService interface {
+	AcctStart(username []byte, userip net.IP, usermac net.HardwareAddr, sessionid string) error
+}
+
+type RadiusAcctStopService interface {
+	AcctStop(username []byte, userip net.IP, usermac net.HardwareAddr, sessionid string) error
+}
+
 var ExtraAuth interface{}
 
 //utils function to test agent chap password
