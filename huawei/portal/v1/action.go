@@ -25,7 +25,7 @@ func (v *Version) NewAffAckAuth(userip net.IP, secret string, serial uint16, req
 func (v *Version) NewReqInfo(userip net.IP, secret string) portal.Message {
 	msg := newMessage(portal.REQ_INFO, userip, secret, portal.NewSerialNo(), 0)
 	msg.Header.AttrNum = 2
-	msg.Attrs = []T_Attr{{AttrType: byte(6), AttrLen: 2}, {AttrType: byte(7), AttrLen: 2}}
+	msg.Attrs = []T_Attr{{AttrType: byte(6), AttrLen: 0}, {AttrType: byte(7), AttrLen: 0}}
 	return msg
 }
 

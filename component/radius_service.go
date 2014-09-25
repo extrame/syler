@@ -11,8 +11,8 @@ import (
 	"strings"
 )
 
-var START = int64(1)
-var STOP = int64(2)
+var START = 1
+var STOP = 2
 
 var radius_service *AuthService = new(AuthService)
 
@@ -44,7 +44,7 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	var callingStationId net.HardwareAddr
 	var chapcha = request.Authenticator[:]
 	var userip net.IP
-	var acctStatus int64
+	var acctStatus int
 	var acctSessionId string
 
 	for _, v := range request.AVPs {
@@ -140,15 +140,5 @@ func (p *AuthService) Authenticate(request *radius.Packet) (*radius.Packet, erro
 	}
 	npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte(msg)})
 
-	return npac, nil
-}
-
-type AccService struct{}
-
-func (p *AccService) Authenticate(request *radius.Packet) (*radius.Packet, error) {
-	fmt.Println("got a acc")
-	npac := request.Reply()
-	npac.Code = radius.AccountingResponse
-	npac.AVPs = append(npac.AVPs, radius.AVP{Type: radius.ReplyMessage, Value: []byte("ok!")})
 	return npac, nil
 }
