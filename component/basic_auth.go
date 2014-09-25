@@ -83,10 +83,10 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			if basip := net.ParseIP(nas); basip != nil {
 				log.Printf("got a login request from %s on nas %s\n", userip, basip)
 				username = []byte(string(username) + "@" + *config.HuaweiDomain)
-				a.authing_user[userip.String()] = &AuthInfo{username, userpwd, uint32(to)}
+				a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, uint32(to)}
 				err = Auth(userip, basip, uint32(to), username, userpwd)
 				if err == nil {
-					w.Write(a.authing_user[userip.String()].Mac.String())
+					w.Write([]byte(a.authing_user[userip.String()].Mac.String()))
 					return
 				}
 			} else {
@@ -97,6 +97,7 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		err = fmt.Errorf("该IP不在配置可允许的用户中")
 	}
 	if err != nil {
+		log.Println("login error: ", err)
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 	}
@@ -114,7 +115,7 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	a.authing_user[userip.String()] = &AuthInfo{username, userpwd, timeout}
+	a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, timeout}
 	return fname, userpwd
 }
 
