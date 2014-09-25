@@ -11,8 +11,6 @@ import (
 	"runtime/debug"
 )
 
-var CommonHttpHandler i.HttpHandler
-
 func ErrorWrap(w http.ResponseWriter) {
 	if e := recover(); e != nil {
 		log.Print("panic:", e, "\n", string(debug.Stack()))
@@ -31,7 +29,7 @@ func StartHttp() {
 		if handler, ok := i.ExtraAuth.(i.HttpHandler); ok {
 			handler.HandleLogin(w, r)
 		} else {
-			CommonHttpHandler.HandleLogin(w, r)
+			BASIC_SERVICE.HandleLogin(w, r)
 		}
 	})
 	http.HandleFunc("/logout", func(w http.ResponseWriter, r *http.Request) {
