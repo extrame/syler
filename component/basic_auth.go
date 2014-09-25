@@ -15,23 +15,25 @@ import (
 type AuthInfo struct {
 	Name    []byte
 	Pwd     []byte
+	Mac     net.HardwareAddr
 	Timeout uint32
 }
 
 type AuthServer struct {
-	authing_user map[string]AuthInfo
+	authing_user map[string]*AuthInfo
 }
 
 var BASIC_SERVICE = new(AuthServer)
 
 func InitBasic() {
-	BASIC_SERVICE.authing_user = make(map[string]AuthInfo)
+	BASIC_SERVICE.authing_user = make(map[string]*AuthInfo)
 }
 
 func (a *AuthServer) AuthChap(username []byte, chapid byte, chappwd, chapcha []byte, userip net.IP, usermac net.HardwareAddr) (err error, to uint32) {
 	if info, ok := a.authing_user[userip.String()]; ok {
 		if bytes.Compare(username, info.Name) == 0 && i.TestChapPwd(chapid, info.Pwd, chapcha, chappwd) {
 			to = info.Timeout
+			info.Mac = usermac
 			return
 		}
 	} else {
@@ -81,8 +83,12 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 			if basip := net.ParseIP(nas); basip != nil {
 				log.Printf("got a login request from %s on nas %s\n", userip, basip)
 				username = []byte(string(username) + "@" + *config.HuaweiDomain)
-				a.authing_user[userip.String()] = AuthInfo{username, userpwd, uint32(to)}
+				a.authing_user[userip.String()] = &AuthInfo{username, userpwd, uint32(to)}
 				err = Auth(userip, basip, uint32(to), username, userpwd)
+				if err == nil {
+					w.Write(a.authing_user[userip.String()].Mac.String())
+					return
+				}
 			} else {
 				err = fmt.Errorf("NAS IP配置错误")
 			}
@@ -93,8 +99,6 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
-	} else {
-		w.Write([]byte("OK"))
 	}
 }
 
@@ -110,7 +114,7 @@ func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uin
 	}
 	fname := append(username, app...)
 	userpwd := bts
-	a.authing_user[userip.String()] = AuthInfo{username, userpwd, timeout}
+	a.authing_user[userip.String()] = &AuthInfo{username, userpwd, timeout}
 	return fname, userpwd
 }
 
