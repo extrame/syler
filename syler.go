@@ -19,7 +19,7 @@ func main() {
 	// }()
 
 	path := flag.String("config", "./syler.conf", "设置配置文件的路径")
-	componnet.InitBasic()
+	component.InitBasic()
 	flag.Parse()
 	*path = filepath.FromSlash(*path)
 	if err := toml.Parse(*path); err == nil {
