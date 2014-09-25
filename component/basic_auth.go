@@ -78,13 +78,22 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		} else if userip == nil {
 			err = fmt.Errorf("配置错误！请联系管理员")
 		}
-
+		var full_username string
 		if userip != nil {
 			if basip := net.ParseIP(nas); basip != nil {
 				log.Printf("got a login request from %s on nas %s\n", userip, basip)
-				a.authing_user[userip.String()] = &AuthInfo{username, userpwd, []byte{}, uint32(to)}
-				err = Auth(userip, basip, uint32(to), []byte(string(username)+"@"+*config.HuaweiDomain), userpwd)
-				if err == nil {
+				if len(username) == 0 {
+					if *config.RandomUser {
+						full_username, userpwd = a.RandomUser(userip, basip, *config.HuaweiDomain, uint32(to))
+					} else {
+						w.WriteHeader(http.StatusBadRequest)
+						return
+					}
+				} else {
+					full_username := []byte(string(username) + "@" + *config.HuaweiDomain)
+					a.authing_user[userip.String()] = AuthInfo{username, userpwd, []byte{}, uint32(to)}
+				}
+				if err = Auth(userip, basip, uint32(to), []byte(full_username), userpwd); err == nil {
 					w.Write([]byte(a.authing_user[userip.String()].Mac.String()))
 					return
 				}
