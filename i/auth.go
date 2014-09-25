@@ -23,11 +23,11 @@ type HttpHandler interface {
 }
 
 type RadiusAcctStartService interface {
-	AcctStart(username []byte, userip net.IP, usermac net.HardwareAddr, sessionid string) error
+	AcctStart(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error
 }
 
 type RadiusAcctStopService interface {
-	AcctStop(username []byte, userip net.IP, usermac net.HardwareAddr, sessionid string) error
+	AcctStop(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error
 }
 
 var ExtraAuth interface{}

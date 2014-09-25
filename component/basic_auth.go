@@ -119,6 +119,6 @@ func (a *AuthServer) AcctStart(username []byte, userip net.IP, nasip net.IP, use
 }
 
 func (a *AuthServer) AcctStop(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error {
-	callBackOffline(*config.CallBackUrl, userip, src)
+	callBackOffline(*config.CallBackUrl, userip, nasip)
 	return nil
 }
