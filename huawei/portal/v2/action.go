@@ -31,7 +31,7 @@ func (v *Version) NewAffAckAuth(userip net.IP, secret string, serial uint16, req
 
 func (v *Version) NewAuth(userip net.IP, secret string, username []byte, userpwd []byte, req uint16, cha []byte) portal.Message {
 	msg := newMessage(3, userip, portal.NewSerialNo(), req)
-	msg.Header.AttrNum = 2
+	msg.Header.AttrNum = 3
 	hash := md5.New()
 	hash.Write([]byte{byte(req)})
 	hash.Write(userpwd)
