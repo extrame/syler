@@ -37,7 +37,11 @@ func (v *Version) NewAuth(userip net.IP, secret string, username []byte, userpwd
 	hash.Write(userpwd)
 	hash.Write(cha)
 	cpwd := hash.Sum(nil)
-	msg.Attrs = []T_Attr{{AttrType: byte(1), AttrLen: byte(len(username)), AttrStr: username}, {AttrType: byte(4), AttrLen: byte(len(cpwd)), AttrStr: cpwd}}
+	msg.Attrs = []T_Attr{
+		{AttrType: byte(1), AttrLen: byte(len(username)), AttrStr: username},
+		{AttrType: byte(3), AttrLen: byte(len(cha)), AttrStr: cha},
+		{AttrType: byte(4), AttrLen: byte(len(cpwd)), AttrStr: cpwd},
+	}
 	msg.AuthBy(secret)
 	return msg
 }
