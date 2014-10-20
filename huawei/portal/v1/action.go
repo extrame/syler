@@ -80,12 +80,16 @@ func newMessage(typ byte, userip net.IP, secret string, serialNo uint16, reqId u
 
 func (v *Version) NewAuth(userip net.IP, secret string, username []byte, userpwd []byte, req uint16, cha []byte) portal.Message {
 	msg := newMessage(3, userip, secret, portal.NewSerialNo(), req)
-	msg.Header.AttrNum = 2
+	msg.Header.AttrNum = 3
 	hash := md5.New()
 	hash.Write([]byte{byte(req)})
 	hash.Write(userpwd)
 	hash.Write(cha)
 	cpwd := hash.Sum(nil)
-	msg.Attrs = []T_Attr{{AttrType: byte(1), AttrLen: byte(len(username)), AttrStr: username}, {AttrType: byte(4), AttrLen: byte(len(cpwd)), AttrStr: cpwd}}
+	msg.Attrs = []T_Attr{
+		{AttrType: byte(1), AttrLen: byte(len(username)), AttrStr: username},
+		{AttrType: byte(3), AttrLen: byte(len(cha)), AttrStr: cha},
+		{AttrType: byte(4), AttrLen: byte(len(cpwd)), AttrStr: cpwd},
+	}
 	return msg
 }

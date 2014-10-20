@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"path/filepath"
 	"strconv"
 )
 
@@ -109,6 +110,31 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
 	}
+}
+
+//处理Logout请求
+func (a *AuthServer) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	var err error
+	nas := r.FormValue("nasip") //TODO
+	userip_str := r.FormValue("userip")
+	if userip := net.ParseIP(userip_str); userip != nil {
+		if basip := net.ParseIP(nas); basip != nil {
+			if _, err = Logout(userip, *config.HuaweiSecret, basip); err == nil {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		} else {
+			err = fmt.Errorf("Parse Ip err from %s", nas)
+		}
+	} else {
+		err = fmt.Errorf("Parse Ip err from %s", userip_str)
+	}
+}
+
+func (a *AuthServer) HandleRoot(w http.ResponseWriter, r *http.Request) {
+	log.Println("Show login page")
+	path := filepath.FromSlash(*config.LoginPage)
+	http.ServeFile(w, r, path)
 }
 
 func (a *AuthServer) RandomUser(userip, nasip net.IP, domain string, timeout uint32) ([]byte, []byte) {
