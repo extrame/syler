@@ -16,7 +16,7 @@ func StartHuawei() {
 	portal.RegisterFallBack(func(msg portal.Message, src net.IP) {
 		log.Println(" type: ", msg.Type())
 		if msg.Type() == portal.NTF_LOGOUT {
-			callBackOffline(*config.CallBackUrl, msg.UserIp(), src)
+			BASIC_SERVICE.NotifyLogout(msg.UserIp(), src)
 		}
 	})
 	if *config.HuaweiVersion == 1 {

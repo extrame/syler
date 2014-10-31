@@ -45,7 +45,6 @@ func StartHttp() {
 	log.Printf("listen http on %d\n", *config.HttpPort)
 	err := http.ListenAndServe(fmt.Sprintf(":%d", *config.HttpPort), nil)
 	if err != nil {
-		fmt.Println(err)
 		log.Println(err)
 	}
 }

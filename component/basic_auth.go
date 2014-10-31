@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"path/filepath"
 	"strconv"
 )
@@ -72,12 +73,26 @@ func (a *AuthServer) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		var to uint64
 		to, err = strconv.ParseUint(timeout, 10, 32)
 
+		if to == 0 && *config.DefaultTimeout != 0 {
+			to = *config.DefaultTimeout
+		}
+
 		userip := net.ParseIP(userip_str)
 		if *config.UseRemoteIpAsUserIp == true {
 			ip, _, _ := net.SplitHostPort(r.RemoteAddr)
 			userip = net.ParseIP(ip)
 		} else if userip == nil {
-			err = fmt.Errorf("配置错误！请联系管理员")
+			u_refer := r.Header.Get("Referer")
+			var u *url.URL
+			if u, err = url.Parse(u_refer); err == nil {
+				if uip := u.Query().Get("userip"); uip != "" {
+					userip = net.ParseIP(userip_str)
+				} else {
+					err = fmt.Errorf("请求解析Referer错误")
+				}
+			} else {
+				err = fmt.Errorf("配置错误！请联系管理员")
+			}
 		}
 		var full_username []byte
 		if userip != nil {
@@ -158,6 +173,11 @@ func (a *AuthServer) AcctStart(username []byte, userip net.IP, nasip net.IP, use
 }
 
 func (a *AuthServer) AcctStop(username []byte, userip net.IP, nasip net.IP, usermac net.HardwareAddr, sessionid string) error {
+	callBackOffline(*config.CallBackUrl, userip, nasip)
+	return nil
+}
+
+func (a *AuthServer) NotifyLogout(userip, nasip net.IP) error {
 	callBackOffline(*config.CallBackUrl, userip, nasip)
 	return nil
 }
