@@ -18,7 +18,7 @@ WX5000
 ## 下载
 ### 从源码安装
 
-* go install github.com/extrame/syler
+* go get github.com/extrame/syler
 
 ## 注意
 本开源包仅供非商业使用
