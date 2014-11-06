@@ -86,13 +86,15 @@ func ListenAndService(addr string) (err error) {
 		if err != nil {
 			return err
 		}
-		message := Ver.Unmarshall(data[:n])
-		if c, ok := expect[message.SerialId()]; ok {
-			c <- message
-		} else {
-			log.Print("get a active message")
-			cb_fallback(message, saddr.IP)
-		}
+		go func(bts []byte) {
+			message := Ver.Unmarshall(bts)
+			if c, ok := expect[message.SerialId()]; ok {
+				c <- message
+			} else {
+				log.Print("get a active message")
+				cb_fallback(message, saddr.IP)
+			}
+		}(data[:n])
 	}
 
 	return
