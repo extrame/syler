@@ -1,7 +1,7 @@
 package config
 
 import (
-	toml "github.com/stvp/go-toml-config"
+	toml "github.com/extrame/go-toml-config"
 	"net"
 	"strings"
 )
@@ -26,6 +26,7 @@ var (
 	LoginPage           = toml.String("basic.login_page", "./login.html")
 	NasIp               = toml.String("basic.nas_ip", "")
 	DefaultTimeout      = toml.Uint64("basic.default_timeout", 0)
+	AuthType            = toml.String("radius.auth_type", "random")
 )
 
 func IsValid() bool {

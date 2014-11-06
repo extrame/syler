@@ -3,9 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+	toml "github.com/extrame/go-toml-config"
 	"github.com/extrame/syler/component"
 	"github.com/extrame/syler/config"
-	toml "github.com/stvp/go-toml-config"
+	"github.com/extrame/syler/i"
 	"path/filepath"
 )
 
@@ -25,6 +26,15 @@ func main() {
 	if err := toml.Parse(*path); err == nil {
 		if config.IsValid() {
 			component.InitLogger()
+			if *config.AuthType == "db" {
+				extra := component.NewDbAuthService()
+				extra.AddConfig()
+				toml.Load()
+				i.ExtraAuth = extra
+				if !extra.IsConfigValid() {
+					return
+				}
+			}
 			go component.StartHuawei()
 			if *config.RadiusEnable {
 				go component.StartRadiusAuth()
