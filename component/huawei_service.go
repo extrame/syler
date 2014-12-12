@@ -51,6 +51,8 @@ func Logout(userip net.IP, secret string, basip net.IP) (response portal.Message
 
 func callBackOffline(url string, userip, netip net.IP) {
 	if url != "" {
-		http.Get(url + "?userip=" + userip.String() + "&nas=" + netip.String())
+		if resp, err := http.Get(url + "?userip=" + userip.String() + "&nas=" + netip.String()); err == nil {
+			defer resp.Body.Close()
+		}
 	}
 }
